@@ -3,11 +3,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>嵐にしやがれ グルメ聖地マップ</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.css" crossorigin="anonymous"/>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js" crossorigin="anonymous"></script>
 <style>
 :root {
   --red:#C8102E; --red2:#e8304a;
@@ -19,8 +21,8 @@
   --panel-w: 420px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;background:var(--dark);color:var(--white);}
-.app{display:flex;flex-direction:column;height:100vh;}
+html,body{height:100%;height:-webkit-fill-available;overflow:hidden;font-family:'Noto Sans JP',sans-serif;background:var(--dark);color:var(--white);}
+.app{display:flex;flex-direction:column;height:100vh;height:-webkit-fill-available;}
 
 /* HEADER */
 .header{background:var(–dark2);border-bottom:1px solid #1e1e1e;padding:9px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:1000;}
@@ -44,13 +46,13 @@ html,body{height:100%;overflow:hidden;font-family:'Noto Sans JP',sans-serif;back
 .fbtn:hover:not(.active):not(.active-green):not(.active-month){border-color:#333;color:var(–white);}
 
 /* MAIN */
-.main{display:flex;flex:1;overflow:hidden;}
-#map{flex:1;height:100%;}
-.leaflet-tile{filter:brightness(.25) saturate(.5);}
+.main{display:flex;flex:1 1 0;overflow:hidden;min-height:0;}
+#map{flex:1;height:100%;min-height:0;position:relative;}
+.leaflet-tile{filter:brightness(.85);}
 .leaflet-container{background:#080808;}
 
 /* PANEL */
-.panel{width:var(–panel-w);height:100%;overflow-y:auto;border-left:1px solid #1a1a1a;flex-shrink:0;scrollbar-width:thin;scrollbar-color:#1e1e1e transparent;}
+.panel{width:var(–panel-w);height:100%;overflow-y:auto;border-left:1px solid #1a1a1a;flex-shrink:0;scrollbar-width:thin;scrollbar-color:#1e1e1e transparent;-webkit-overflow-scrolling:touch;min-height:0;}
 .panel::-webkit-scrollbar{width:3px;}
 .panel::-webkit-scrollbar-thumb{background:#1e1e1e;border-radius:3px;}
 .panel-header{padding:8px 14px;border-bottom:1px solid #181818;font-size:10px;color:var(–muted);letter-spacing:.08em;text-transform:uppercase;position:sticky;top:0;background:var(–dark);z-index:10;display:flex;align-items:center;justify-content:space-between;}
@@ -248,8 +250,10 @@ const SB_URL = 'https://mzabtjbwmbkifkjgjtje.supabase.co';
 const SB_KEY = 'sb_publishable_Hxn98AxIp0HzkCpC8YW88g_krmF_jFb';
 
 async function sbFetch(path, options={}) {
+  try {
   const res = await fetch(SB_URL + '/rest/v1/' + path, {
     ...options,
+    mode: 'cors',
     headers: {
       'apikey': SB_KEY,
       'Authorization': 'Bearer ' + SB_KEY,
@@ -261,6 +265,7 @@ async function sbFetch(path, options={}) {
   if (!res.ok) return null;
   const text = await res.text();
   return text ? JSON.parse(text) : null;
+  } catch(e) { console.warn('Supabase fetch failed:', e); return null; }
 }
 
 // ── DATA ──
@@ -362,8 +367,8 @@ function toast(msg) {
 
 // ── MAP ──
 const map = L.map('map', { center:[35.65,139.72], zoom:11, zoomControl:true });
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution:'© OpenStreetMap', maxZoom:19
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution:'© OpenStreetMap © CARTO', maxZoom:19, subdomains:'abcd'
 }).addTo(map);
 
 function pinClass(s) {
@@ -379,7 +384,7 @@ function makeIcon(s) {
   });
 }
 function mLabel(months) {
-  return months.length===12 ? '通年' : months.map(m=>m+'月').join('・');
+  return months.length===12 ? '\u901a\u5e74' : months.map(m=>m+'\u6708').join(' / ');
 }
 function buildPopup(s) {
   const cd = communityData[s.id];
